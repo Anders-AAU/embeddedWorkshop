@@ -98,6 +98,7 @@ void TaskMakeMeasurement(void *pvParameters)
 {
 
   int delayTime = 100;
+  int count;
 
   for (;;)
   {
@@ -109,6 +110,7 @@ void TaskMakeMeasurement(void *pvParameters)
     {
       pot.makeMeasurement();
       xSemaphoreGive(potMutex);
+      count++;
     }
     else
     {
