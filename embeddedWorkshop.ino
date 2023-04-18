@@ -63,14 +63,14 @@ void setup() {
   xTaskCreate(TaskMakeMeasurement, // Task function
               "MakePotMeasurement", // Task name for humans
               128, 
-              100, // Task parameter (used for delay here)
+              NULL, // Task parameter (used for delay here)
               1, // Task priority
               NULL);
 
   xTaskCreate(TaskDoSomething,
               "DoesStuff",
               128,
-              500, // Task parameter (used for delay here)
+              NULL, // Task parameter (used for delay here)
               1, // Task priority
               NULL);
 
@@ -97,7 +97,7 @@ void interruptHandler() {
 void TaskMakeMeasurement(void *pvParameters)
 {
 
-  int delayTime = pvParameters;
+  int delayTime = 100;
 
   for (;;)
   {
@@ -125,7 +125,7 @@ void TaskMakeMeasurement(void *pvParameters)
 void TaskDoSomething(void *pvParameters)
 {
 
-  int delayTime = pvParameters;
+  int delayTime = 500;
 
   for (;;)
   {
