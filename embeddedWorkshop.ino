@@ -66,7 +66,8 @@ void loop() {}
 
 void TaskMakeMeasurement(void *pvParameters)
 {
-  int delayTime = 100;
+  //int delayTime = 100;
+  int delayTime = *pvParameters
   for (;;)
   {
     /**
