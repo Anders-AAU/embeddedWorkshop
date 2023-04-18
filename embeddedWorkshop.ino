@@ -31,9 +31,9 @@ void setup() {
   pinMode(LED_BUILTIN, OUTPUT);
 
 
-  /**
-       Create a mutex.
-       https://www.freertos.org/CreateMutex.html
+  /*
+    Create a mutex.
+    https://www.freertos.org/CreateMutex.html
   */
  
   if ( potMutex == NULL )  // Check to confirm that the Serial Semaphore has not already been created.
@@ -49,14 +49,14 @@ void setup() {
   xTaskCreate(TaskMakeMeasurement, // Task function
               "MakePotMeasurement", // Task name for humans
               128, 
-              NULL, // Task parameter (used for delay here)
+              100, // Task parameter (used for delay here)
               1, // Task priority
               NULL);
 
   xTaskCreate(TaskDoSomething,
               "DoesStuff",
               128,
-              NULL, // Task parameter (used for delay here)
+              500, // Task parameter (used for delay here)
               1, // Task priority
               NULL);
 
@@ -66,8 +66,9 @@ void loop() {}
 
 void TaskMakeMeasurement(void *pvParameters)
 {
-  //int delayTime = 100;
-  int delayTime = *pvParameters
+
+  int delayTime = pvParameters;
+
   for (;;)
   {
     /**
@@ -93,7 +94,9 @@ void TaskMakeMeasurement(void *pvParameters)
 
 void TaskDoSomething(void *pvParameters)
 {
-  int delayTime = 1000;
+
+  int delayTime = pvParameters;
+
   for (;;)
   {
    if (xSemaphoreTake(potMutex, 3) == pdTRUE)
