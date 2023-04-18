@@ -32,7 +32,7 @@ void setup() {
 
   Serial.begin(9600);
   pinMode(LED_BUILTIN, OUTPUT);
-  pinMode(interruptPin, INPUT_PULLUP);
+  pinMode(interruptPin, INPUT);
 
 
   /*
@@ -54,7 +54,7 @@ void setup() {
   interruptSemaphore = xSemaphoreCreateBinary();
   if (interruptSemaphore != NULL) {
     // Attach interrupt for Arduino digital pin. 
-    attachInterrupt(digitalPinToInterrupt(interruptPin), interruptHandler, LOW);
+    attachInterrupt(digitalPinToInterrupt(interruptPin), interruptHandler, HIGH);
   }
 
   /**
@@ -81,7 +81,6 @@ void loop() {}
 void interruptHandler() {
   // Give semaphore in the interrupt handler. Code block can now run in task
   xSemaphoreGiveFromISR(interruptSemaphore, NULL);
-  Serial.println("Hello from interrupt handler");
   /* 
 
   USE THIS TO ACCESS THE SEMAPHORE IN THE TASK
@@ -141,7 +140,7 @@ void TaskDoSomething(void *pvParameters)
       Serial.println("Blocked");
     }
 
-    if (xSemaphoreTake(interruptSemaphore, portMAX_DELAY) == pdPASS) {
+    if (xSemaphoreTake(interruptSemaphore, 0) == pdPASS) {
       Serial.println("Interrupted");
     }
 
