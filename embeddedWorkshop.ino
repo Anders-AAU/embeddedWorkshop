@@ -114,7 +114,7 @@ void TaskMakeMeasurement(void *pvParameters)
       Serial.println("Blocked");
     }
 
-    digitalWrite(LED_BUILTIN, !digitalRead(LED_BUILTIN));
+    //digitalWrite(LED_BUILTIN, !digitalRead(LED_BUILTIN));
 
     vTaskDelay(pdMS_TO_TICKS(delayTime));
   }
@@ -138,6 +138,11 @@ void TaskDoSomething(void *pvParameters)
     {
       Serial.println("Blocked");
     }
+
+    if (xSemaphoreTake(interruptSemaphore, portMAX_DELAY) == pdPASS) {
+      digitalWrite(LED_BUILTIN, !digitalRead(LED_BUILTIN));
+    }
+
     vTaskDelay(pdMS_TO_TICKS(delayTime));
   
   }
