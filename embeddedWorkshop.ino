@@ -143,9 +143,11 @@ void TaskDoSomething(void *pvParameters)
       Serial.println("Blocked");
     }
 
+    /*
     if (xSemaphoreTake(interruptSemaphore, portMAX_DELAY) == pdPASS) {
       Serial.println("Interrupted");
     }
+    */
 
     vTaskDelay(pdMS_TO_TICKS(delayTime));
   
