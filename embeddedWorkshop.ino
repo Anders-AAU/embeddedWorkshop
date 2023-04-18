@@ -19,6 +19,9 @@ Potentiometer pot(A0);
 // Declaring a global variable of type SemaphoreHandle_t
 SemaphoreHandle_t potMutex;
 
+// Declaring a global variable of type SemaphoreHandle_t
+SemaphoreHandle_t interruptSemaphore;
+#define interruptPin 2
 
 // Declaring tasks
 void TaskMakeMeasurement( void *pvParameters );
@@ -44,6 +47,16 @@ void setup() {
   }
 
   /**
+   * Create a binary semaphore.
+   * https://www.freertos.org/xSemaphoreCreateBinary.html
+   */
+  interruptSemaphore = xSemaphoreCreateBinary();
+  if (interruptSemaphore != NULL) {
+    // Attach interrupt for Arduino digital pin. 
+    attachInterrupt(digitalPinToInterrupt(interruptPin), interruptHandler, CHANGE);
+  }
+
+  /**
      Create tasks
   */
   xTaskCreate(TaskMakeMeasurement, // Task function
@@ -63,6 +76,22 @@ void setup() {
 }
 
 void loop() {}
+
+void interruptHandler() {
+  // Give semaphore in the interrupt handler. Code block can now run in task
+  xSemaphoreGiveFromISR(interruptSemaphore, NULL);
+
+
+  /* 
+
+  USE THIS TO ACCESS THE SEMAPHORE IN THE TASK
+
+  if (xSemaphoreTake(interruptSemaphore, portMAX_DELAY) == pdPASS) {
+      code that does stuff
+    }
+
+  */
+}
 
 void TaskMakeMeasurement(void *pvParameters)
 {
