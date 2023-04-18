@@ -7,7 +7,7 @@
 #include <Arduino_FreeRTOS.h>
 
 
-// Include mutex support
+// Include semaphore/mutex support
 #include <semphr.h>
 
 
@@ -32,7 +32,7 @@ void setup() {
 
   Serial.begin(9600);
   pinMode(LED_BUILTIN, OUTPUT);
-  //pinMode(interruptPin, INPUT_PULLUP);
+  pinMode(interruptPin, INPUT_PULLUP);
 
 
   /*
@@ -54,7 +54,7 @@ void setup() {
   interruptSemaphore = xSemaphoreCreateBinary();
   if (interruptSemaphore != NULL) {
     // Attach interrupt for Arduino digital pin. 
-    //attachInterrupt(digitalPinToInterrupt(interruptPin), interruptHandler, CHANGE);
+    attachInterrupt(digitalPinToInterrupt(interruptPin), interruptHandler, LOW);
   }
 
   /**
@@ -96,9 +96,9 @@ void interruptHandler() {
 
 void TaskMakeMeasurement(void *pvParameters)
 {
+  (void) pvParameters;
 
   int delayTime = 100;
-  int count;
 
   for (;;)
   {
@@ -110,8 +110,6 @@ void TaskMakeMeasurement(void *pvParameters)
     {
       pot.makeMeasurement();
       xSemaphoreGive(potMutex);
-      count++;
-      Serial.println(counter)
     }
     else
     {
@@ -127,6 +125,7 @@ void TaskMakeMeasurement(void *pvParameters)
 
 void TaskDoSomething(void *pvParameters)
 {
+  (void) pvParameters;
 
   int delayTime = 500;
 
@@ -143,11 +142,9 @@ void TaskDoSomething(void *pvParameters)
       Serial.println("Blocked");
     }
 
-    /*
     if (xSemaphoreTake(interruptSemaphore, portMAX_DELAY) == pdPASS) {
       Serial.println("Interrupted");
     }
-    */
 
     vTaskDelay(pdMS_TO_TICKS(delayTime));
   
