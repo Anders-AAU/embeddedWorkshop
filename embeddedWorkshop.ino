@@ -111,6 +111,7 @@ void TaskMakeMeasurement(void *pvParameters)
       pot.makeMeasurement();
       xSemaphoreGive(potMutex);
       count++;
+      Serial.println(counter)
     }
     else
     {
