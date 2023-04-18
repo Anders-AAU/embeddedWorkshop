@@ -53,7 +53,7 @@ void setup() {
   interruptSemaphore = xSemaphoreCreateBinary();
   if (interruptSemaphore != NULL) {
     // Attach interrupt for Arduino digital pin. 
-    attachInterrupt(digitalPinToInterrupt(interruptPin), interruptHandler, HIGH);
+    attachInterrupt(digitalPinToInterrupt(interruptPin), interruptHandler, RISING);
   }
 
   /**
