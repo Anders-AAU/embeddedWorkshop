@@ -32,6 +32,7 @@ void setup() {
 
   Serial.begin(9600);
   pinMode(LED_BUILTIN, OUTPUT);
+  pinMode(interruptPin, INPUT_PULLUP);
 
 
   /*
