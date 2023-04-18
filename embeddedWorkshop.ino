@@ -81,8 +81,7 @@ void loop() {}
 void interruptHandler() {
   // Give semaphore in the interrupt handler. Code block can now run in task
   xSemaphoreGiveFromISR(interruptSemaphore, NULL);
-  digitalWrite(LED_BUILTIN, !digitalRead(LED_BUILTIN));
-
+  Serial.println("Hello from interrupt handler");
   /* 
 
   USE THIS TO ACCESS THE SEMAPHORE IN THE TASK
