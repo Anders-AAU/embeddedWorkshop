@@ -32,7 +32,7 @@ void setup() {
 
   Serial.begin(9600);
   pinMode(LED_BUILTIN, OUTPUT);
-  pinMode(interruptPin, INPUT_PULLUP);
+  //pinMode(interruptPin, INPUT_PULLUP);
 
 
   /*
@@ -54,7 +54,7 @@ void setup() {
   interruptSemaphore = xSemaphoreCreateBinary();
   if (interruptSemaphore != NULL) {
     // Attach interrupt for Arduino digital pin. 
-    attachInterrupt(digitalPinToInterrupt(interruptPin), interruptHandler, CHANGE);
+    //attachInterrupt(digitalPinToInterrupt(interruptPin), interruptHandler, CHANGE);
   }
 
   /**
