@@ -7,7 +7,7 @@
 // legal telegram  could be  [1234567]
 // So we have three states:
 // 0: looking for starting delimiter '['
-// 1: receing 8 bytes
+// 1: receiving 8 bytes
 // 2: receiving end delimiter ']'
 
 // NB NB NB [ and ] must nt be in data fields.They are used as delimiters
@@ -18,16 +18,16 @@
 #define STOPDELIM ']'
 
 struct tlgTp {
-  char tlg[NRDATAB];
-  int state;
-  int posCount;
-  int dataRdy;
+  char tlg[NRDATAB]; // Array for storing data from message excluding stop- and startdelimiter
+  int state; // 0: We are looking for STARTDELIMITER, 1: We are looking member of tlg[NRDATAB], 3: We must receive STOPDELIMITER otherwise we start new message
+  int posCount; // Our progress in tlg[NRDATAB]
+  int dataRdy; // Is there a new message ready?
 };
 
 struct tlgTp aTlg;
 
 
-int initTlg(struct tlgTp * t)
+int initTlg(struct tlgTp * t) // Function for resetting instance of tlgTp used in handleIncomingBytes
 {
   t->state = 0;
   t->posCount = 0;
@@ -38,8 +38,8 @@ int initTlg(struct tlgTp * t)
 int handleIncommingBytes(char b, struct tlgTp *t)
 {
   int retVal;
-  switch ( t->state) {
-    case 0: // we are looking for STARTDELIM
+  switch ( t->state) { // 0: We are looking for STARTDELIMITER, 1: We are looking member of tlg[NRDATAB], 3: We must receive STOPDELIMITER otherwise we start new message
+    case 0: // We are looking for STARTDELIM
       if (b == STARTDELIM) {
         t->state = 1;
         t->posCount = 0;
@@ -56,7 +56,7 @@ int handleIncommingBytes(char b, struct tlgTp *t)
       }
       retVal = 0;
       break;
-    case 3: // we must receive STOPDELIM. If not then we start on receing a new tlg
+    case 3: // We must receive STOPDELIM. If not then we start on receiving a new tlg
       if (b == STOPDELIM) {
         // yes a tlg is received
         t->dataRdy = 1;
@@ -74,7 +74,7 @@ int handleIncommingBytes(char b, struct tlgTp *t)
   return retVal; // if you get 1 there is mail/data
 }
 
-void doSomeThing(struct tlgTp * t)
+void doSomeThing(struct tlgTp * t) // Function for printing received byte's hex value
 {
   Serial.print("data ");
 
@@ -91,8 +91,8 @@ void doSomeThing(struct tlgTp * t)
 // but we do also at same time handle the serial port for incomming telegrams.
 // The serial buffer can only buffer up to 64 bytes on uno and mega
 
-int waitSomeTime(unsigned long tm)
-{
+int waitSomeTime(unsigned long tm) // Function run in void loop where all other functions end up being used
+{                                  // Also used to define how much time to wait between checking for new message
   int res;
   unsigned long tim;
   tim = millis() + tm;
@@ -115,20 +115,19 @@ int waitSomeTime(unsigned long tm)
 
 void setup() {
   Serial.begin(9600);
-  pinMode(13, OUTPUT);
-  initTlg(&aTlg);
+  pinMode(13, OUTPUT); // Set pin 13 (LED-pin) to output
+  initTlg(&aTlg); // Reset message struct
 }
 
 void loop() {
-  digitalWrite(13, HIGH);
-  if (1 ==  waitSomeTime(1000) ) {
+  digitalWrite(13, HIGH); // Turn on LED
+  if (1 ==  waitSomeTime(1000) ) { // Check for 1 second whether a telegram/message has been received
     //a tlg received
   }
 
-  digitalWrite(13, LOW);
-  if ( 1 == waitSomeTime(1000)) {
+  digitalWrite(13, LOW); // Turn off LED
+  if ( 1 == waitSomeTime(1000)) { // Check for 1 second whether a telegram/message has been received
     // again a tlg received
-
   }
 }
 
