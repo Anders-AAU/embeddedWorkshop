@@ -11,6 +11,7 @@
 #include <semphr.h>
 
 
+
 // Include homemade potentimeter class. Interfaced with getValue() and makeMeasurement()
 #include "potentiometer.h"
 Potentiometer pot(A0);
@@ -23,16 +24,35 @@ SemaphoreHandle_t potMutex;
 SemaphoreHandle_t interruptSemaphore;
 #define interruptPin 2
 
+//////////////// Message system /////////////////
+// Include queue support
+#include <queue.h>
+// Define a struct for messageing
+struct messageStruct {
+  String sender;
+  int value;
+};
+
+QueueHandle_t structQueue;
+/////////////////////////////////////////////////
+
+
+
 // Declaring tasks
 void TaskMakeMeasurement( void *pvParameters );
 void TaskDoSomething( void *pvParameters );
+void TaskSerial( void *pvParameters);
 
 
 void setup() {
-
   Serial.begin(9600);
   pinMode(LED_BUILTIN, OUTPUT);
   pinMode(interruptPin, INPUT);
+
+
+  structQueue = xQueueCreate(10, // Queue length
+                              sizeof(struct messageStruct) // Queue item size
+                            );
 
 
   /*
@@ -63,14 +83,21 @@ void setup() {
   xTaskCreate(TaskMakeMeasurement, // Task function
               "MakePotMeasurement", // Task name for humans
               128, 
-              NULL, // Task parameter (used for delay here)
+              NULL,
               1, // Task priority
               NULL);
 
   xTaskCreate(TaskDoSomething,
               "DoesStuff",
               128,
-              NULL, // Task parameter (used for delay here)
+              NULL, 
+              1, // Task priority
+              NULL);
+
+  xTaskCreate(TaskSerial,
+              "Task Serial print", 
+              128, 
+              NULL,
               1, // Task priority
               NULL);
 
@@ -83,13 +110,16 @@ void interruptHandler() {
   xSemaphoreGiveFromISR(interruptSemaphore, NULL);
   /* 
 
-  USE THIS TO ACCESS THE SEMAPHORE IN THE TASK
 
+  ////////////////////////////////////////////////////////////
+  USE THIS TO ACCESS THE SEMAPHORE IN THE TASK
   if (xSemaphoreTake(interruptSemaphore, portMAX_DELAY) == pdPASS) {
       code that does stuff
     }
+  ////////////////////////////////////////////////////////////
 
   */
+  
 }
 
 void TaskMakeMeasurement(void *pvParameters)
@@ -97,7 +127,10 @@ void TaskMakeMeasurement(void *pvParameters)
   (void) pvParameters;
 
   int delayTime = 100;
+  
+  struct messageStruct measurement;
 
+  
   for (;;)
   {
     /**
@@ -105,9 +138,17 @@ void TaskMakeMeasurement(void *pvParameters)
        https://www.freertos.org/a00122.html
     */
     if (xSemaphoreTake(potMutex, 3) == pdTRUE)
-    {
-      pot.makeMeasurement();
+    { 
+      pot.makeMeasurement()
       xSemaphoreGive(potMutex);
+      measurement.sender = "Measurement Task";
+      measurement.value = pot.getValue();
+
+      /**
+     * Post an item on a queue.
+     * https://www.freertos.org/a00117.html
+     */
+      xQueueSend(structQueue, &measurement, portMAX_DELAY);
     }
     else
     {
@@ -147,4 +188,24 @@ void TaskDoSomething(void *pvParameters)
     vTaskDelay(pdMS_TO_TICKS(delayTime));
   
   }
+}
+void TaskSerial( void *pvParameters)
+{
+  (void) pvParameters;
+  
+  while(!Serial){
+    vTaskDelay(1);
+  }
+
+  for (;;)
+  {
+    struct messageStruct measurement;
+    if (xQueueReceive(structQueue, &measurement, 1) == pdPASS) {
+      Serial.print("Sender: ");
+      Serial.print(measurement.sender);
+      Serial.print(" Value: ");
+      Serial.println(measurement.value);
+    }
+  }
+  
 }
