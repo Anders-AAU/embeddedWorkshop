@@ -99,8 +99,8 @@ int waitSomeTime(unsigned long tm) // Function run in void loop where all other 
 
   while (millis() < tim) {
 
-    while (Serial.available()) {  // any bytes arrived ?
-      unsigned int bb = Serial.read();
+    while (Serial.available()) {  // This part needs to be changed to receive messages from  
+      unsigned int bb = Serial.read(); 
       res = handleIncommingBytes( (char)bb, & aTlg);
 
       // we do handle tlg at once
