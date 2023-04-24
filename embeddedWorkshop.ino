@@ -2,28 +2,34 @@
    Example of a FreeRTOS mutex used as a starting point
    https://www.freertos.org/Real-time-embedded-RTOS-mutexes.html
 */
-
-//////////////// Configuration /////////////////
+//*****************************************************************************
+// Configuration
 
 // Include Arduino FreeRTOS library
 #include <Arduino_FreeRTOS.h>
-
 // Include semaphore/mutex support for FreeRTOS
 #include <semphr.h>
+// Include queue support for FreeRTOS
+#include <queue.h>
+
 
 // Include homemade potentimeter class. Interfaced with getValue() and makeMeasurement()
 #include "potentiometer.h"
 Potentiometer pot(A0);
 
-// Semaphore handles
-SemaphoreHandle_t potMutex;
-SemaphoreHandle_t interruptSemaphore;
+
+// Globals
+SemaphoreHandle_t potMutex; // Potentiometer mutex handle
+SemaphoreHandle_t interruptSemaphore; // ISR mutex handle
+QueueHandle_t structQueue; // Queue handle
+
+// Macros
 #define interruptPin 2
 
+
 //////////////// Message system /////////////////
-// Include queue support
-#include <queue.h>
-// Define a struct for messageing
+
+// Define a struct for messaging
 struct messageStruct {
   String sender;
   int value;
@@ -31,17 +37,15 @@ struct messageStruct {
 };
 
 /////////////////////////////////////////////////
-// Queue handles
-QueueHandle_t structQueue;
 
-
-
+// IKKE NØDVENDIGT AT DEKLARERE TASKS TO GANGE
 // Declaring tasks
+/* Frederik: Jeg synes vi skal rykke hele tasken herop, da det måske kan give bedre struktur på koden.
 void TaskMakeMeasurement(   void *pvParameters );
 void TaskDoSomething    (   void *pvParameters );
 void TaskSerial         (   void *pvParameters );
 void TaskKeyboardControl(   void *pvParameters );
-
+*/
 
 
 void setup() {
