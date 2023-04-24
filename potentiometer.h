@@ -25,7 +25,7 @@ class Potentiometer {
     void makeMeasurement();
   private:
     int pin;
-    int measurement;
+    int measurement; // potentiometer value
 };
 
 #endif

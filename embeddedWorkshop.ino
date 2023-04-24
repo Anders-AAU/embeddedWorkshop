@@ -39,9 +39,9 @@ QueueHandle_t structQueue;
 
 
 // Declaring tasks
-void TaskMakeMeasurement( void *pvParameters );
-void TaskDoSomething( void *pvParameters );
-void TaskSerial( void *pvParameters);
+void TaskMakeMeasurement(   void *pvParameters );
+void TaskDoSomething    (   void *pvParameters );
+void TaskSerial         (   void *pvParameters );
 
 
 void setup() {
@@ -77,7 +77,7 @@ void setup() {
     attachInterrupt(digitalPinToInterrupt(interruptPin), interruptHandler, HIGH);
   }
 
-  /**
+  /*
      Create tasks
   */
   xTaskCreate(TaskMakeMeasurement, // Task function
@@ -98,7 +98,7 @@ void setup() {
               "Task Serial print", 
               128, 
               NULL,
-              1, // Task priority
+              2, // Task priority
               NULL);
 
 }
@@ -129,7 +129,6 @@ void TaskMakeMeasurement(void *pvParameters)
   int delayTime = 100;
   
   struct messageStruct measurement;
-
   
   for (;;)
   {
@@ -139,7 +138,7 @@ void TaskMakeMeasurement(void *pvParameters)
     */
     if (xSemaphoreTake(potMutex, 3) == pdTRUE)
     { 
-      pot.makeMeasurement()
+      pot.makeMeasurement();
       xSemaphoreGive(potMutex);
       measurement.sender = "Measurement Task";
       measurement.value = pot.getValue();
@@ -155,8 +154,6 @@ void TaskMakeMeasurement(void *pvParameters)
       Serial.println("Blocked");
     }
 
-    digitalWrite(LED_BUILTIN, !digitalRead(LED_BUILTIN));
-
     vTaskDelay(pdMS_TO_TICKS(delayTime));
   }
 }
@@ -168,12 +165,15 @@ void TaskDoSomething(void *pvParameters)
 
   int delayTime = 500;
 
+  struct messageStruct motorSpeed;
+  int debug = 0;
   for (;;)
   {
    if (xSemaphoreTake(potMutex, 3) == pdTRUE)
     {
-      Serial.print("Potentiometer reads: ");
-      Serial.println(pot.getValue());
+      motorSpeed.sender = "TaskDoSomething ";
+      motorSpeed.value = debug;
+      xQueueSend(structQueue, &motorSpeed, portMAX_DELAY);
       xSemaphoreGive(potMutex);
     }
     else
@@ -184,7 +184,7 @@ void TaskDoSomething(void *pvParameters)
     if (xSemaphoreTake(interruptSemaphore, 0) == pdPASS) {
       Serial.println("Interrupted");
     }
-
+    debug++;
     vTaskDelay(pdMS_TO_TICKS(delayTime));
   
   }
@@ -192,6 +192,8 @@ void TaskDoSomething(void *pvParameters)
 void TaskSerial( void *pvParameters)
 {
   (void) pvParameters;
+
+  struct messageStruct message;
   
   while(!Serial){
     vTaskDelay(1);
@@ -199,13 +201,25 @@ void TaskSerial( void *pvParameters)
 
   for (;;)
   {
-    struct messageStruct measurement;
-    if (xQueueReceive(structQueue, &measurement, 1) == pdPASS) {
+    
+    if (xQueueReceive(structQueue, &message, 1) == pdPASS) {
       Serial.print("Sender: ");
-      Serial.print(measurement.sender);
-      Serial.print(" Value: ");
-      Serial.println(measurement.value);
+      Serial.print(message.sender);
+      Serial.print(" ---> ");
+      Serial.print("Value: ");
+
+      /// Make putput pretty
+      if (message.value < 1000) {
+        Serial.print(" ");
+      }
+      if (message.value < 100) {
+        Serial.print(" ");
+      }
+      if (message.value < 10) {
+        Serial.print(" ");
+      }
+
+      Serial.println(message.value);
     }
   }
-  
 }
