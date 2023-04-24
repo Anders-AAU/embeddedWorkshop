@@ -99,7 +99,7 @@ void setup() {
               "Task Serial print", 
               128, 
               NULL,
-              2, // Task priority
+              3, // Task priority
               NULL);
 
   
