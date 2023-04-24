@@ -3,22 +3,19 @@
    https://www.freertos.org/Real-time-embedded-RTOS-mutexes.html
 */
 
+//////////////// Configuration /////////////////
+
 // Include Arduino FreeRTOS library
 #include <Arduino_FreeRTOS.h>
 
-
-// Include semaphore/mutex support
+// Include semaphore/mutex support for FreeRTOS
 #include <semphr.h>
-
-
-
 
 // Include homemade potentimeter class. Interfaced with getValue() and makeMeasurement()
 #include "potentiometer.h"
 Potentiometer pot(A0);
 
-
-// Declaring a global variable of type SemaphoreHandle_t
+// Semaphore handles
 SemaphoreHandle_t potMutex;
 SemaphoreHandle_t interruptSemaphore;
 #define interruptPin 2
@@ -33,8 +30,9 @@ struct messageStruct {
   String optional;
 };
 
-QueueHandle_t structQueue;
 /////////////////////////////////////////////////
+// Queue handles
+QueueHandle_t structQueue;
 
 
 
