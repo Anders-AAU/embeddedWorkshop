@@ -12,6 +12,7 @@
 
 
 
+
 // Include homemade potentimeter class. Interfaced with getValue() and makeMeasurement()
 #include "potentiometer.h"
 Potentiometer pot(A0);
@@ -19,8 +20,6 @@ Potentiometer pot(A0);
 
 // Declaring a global variable of type SemaphoreHandle_t
 SemaphoreHandle_t potMutex;
-
-// Declaring a global variable of type SemaphoreHandle_t
 SemaphoreHandle_t interruptSemaphore;
 #define interruptPin 2
 
@@ -31,6 +30,7 @@ SemaphoreHandle_t interruptSemaphore;
 struct messageStruct {
   String sender;
   int value;
+  String optional;
 };
 
 QueueHandle_t structQueue;
@@ -42,11 +42,11 @@ QueueHandle_t structQueue;
 void TaskMakeMeasurement(   void *pvParameters );
 void TaskDoSomething    (   void *pvParameters );
 void TaskSerial         (   void *pvParameters );
+void TaskKeyboardControl(   void *pvParameters );
 
 
 
 void setup() {
-  Serial.begin(9600);
   pinMode(LED_BUILTIN, OUTPUT);
   pinMode(interruptPin, INPUT);
 
@@ -101,6 +101,15 @@ void setup() {
               NULL,
               2, // Task priority
               NULL);
+
+  
+  xTaskCreate(TaskKeyboardControl,
+              "Task Keyboard Control",
+              128,
+              NULL,
+              2, // Task priority
+              NULL);
+  
 
 }
 
@@ -190,11 +199,57 @@ void TaskDoSomething(void *pvParameters)
   
   }
 }
+
+
+void TaskKeyboardControl( void *pvParameters)
+{
+  (void) pvParameters;
+  int delayTime = 200;
+
+  struct messageStruct messageCommand;
+  messageCommand.sender = "Keyboard Control";
+  messageCommand.value = -1;
+  for (;;)
+  {
+    
+    if (Serial.available() > 0)
+    { 
+      String inputCommand;
+      while (Serial.available() > 0) {
+        inputCommand += (char)Serial.read();
+      }
+      inputCommand.toLowerCase();
+
+      
+      if(inputCommand == "f")
+      {
+        // forward
+        messageCommand.optional = "Forward";
+        xQueueSend(structQueue, &messageCommand, portMAX_DELAY);
+      }
+      else if(inputCommand == "r")
+      {
+        // Reverse
+        messageCommand.optional = "Reverse";
+        xQueueSend(structQueue, &messageCommand, portMAX_DELAY);
+      }
+      
+    }
+
+    vTaskDelay(pdMS_TO_TICKS(delayTime));
+  }
+
+}
+
+
+
 void TaskSerial( void *pvParameters)
 {
   (void) pvParameters;
 
   struct messageStruct message;
+
+  Serial.begin(9600);
   
   while(!Serial){
     vTaskDelay(1);
@@ -207,20 +262,28 @@ void TaskSerial( void *pvParameters)
       Serial.print("Sender: ");
       Serial.print(message.sender);
       Serial.print(" ---> ");
-      Serial.print("Value: ");
+      
+      if (message.optional != ""){
+        // If not an empty string
+        Serial.println(message.optional);
+      }
+      else {
+        Serial.print("Value: ");
 
-      /// Make putput pretty
-      if (message.value < 1000) {
-        Serial.print(" ");
+        /// Make output pretty
+        if (message.value < 1000) {
+          Serial.print(" ");
+        }
+        if (message.value < 100) {
+          Serial.print(" ");
+        }
+        if (message.value < 10) {
+          Serial.print(" ");
+        }
+        
+        Serial.println(message.value);
       }
-      if (message.value < 100) {
-        Serial.print(" ");
-      }
-      if (message.value < 10) {
-        Serial.print(" ");
-      }
-
-      Serial.println(message.value);
+      
     }
   }
 }
