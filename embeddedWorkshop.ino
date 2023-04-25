@@ -83,8 +83,8 @@ void setup() {
   }
 
   /*
-     Create tasks
-  */
+   * Create tasks
+   */
   xTaskCreate(TaskMakeMeasurement,  // Task function
               "MakePotMeasurement", // Task name for humans
               128,                  // Stack size
