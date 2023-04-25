@@ -20,11 +20,14 @@ Potentiometer pot(A0);
 
 // Globals
 SemaphoreHandle_t potMutex; // Potentiometer mutex handle
-SemaphoreHandle_t interruptSemaphore; // ISR mutex handle
+SemaphoreHandle_t interruptSemaphore; // ISR handle
 QueueHandle_t structQueue; // Queue handle
 
 // Macros
 #define interruptPin 2
+
+// Settings
+static const int queue_length = 10;
 
 
 //////////////// Message system /////////////////
@@ -38,9 +41,7 @@ struct messageStruct {
 
 /////////////////////////////////////////////////
 
-// IKKE NØDVENDIGT AT DEKLARERE TASKS TO GANGE
-// Declaring tasks
-/* Frederik: Jeg synes vi skal rykke hele tasken herop, da det måske kan give bedre struktur på koden.
+/* Tasks in this program
 void TaskMakeMeasurement(   void *pvParameters );
 void TaskDoSomething    (   void *pvParameters );
 void TaskSerial         (   void *pvParameters );
@@ -50,11 +51,11 @@ void TaskKeyboardControl(   void *pvParameters );
 
 
 void setup() {
-  pinMode(LED_BUILTIN, OUTPUT);
-  pinMode(interruptPin, INPUT);
+  pinMode(LED_BUILTIN, OUTPUT); // Set LED to output
+  pinMode(interruptPin, INPUT); // Set interruopt pin to input
 
 
-  structQueue = xQueueCreate(10, // Queue length
+  structQueue = xQueueCreate(queue_length, // Queue length
                               sizeof(struct messageStruct) // Queue item size
                             );
 
@@ -71,7 +72,7 @@ void setup() {
       xSemaphoreGive( ( potMutex ) );  // Make the Serial Port available for use, by "Giving" the Semaphore.
   }
 
-  /**
+  /*
    * Create a binary semaphore.
    * https://www.freertos.org/xSemaphoreCreateBinary.html
    */
@@ -84,12 +85,12 @@ void setup() {
   /*
      Create tasks
   */
-  xTaskCreate(TaskMakeMeasurement, // Task function
+  xTaskCreate(TaskMakeMeasurement,  // Task function
               "MakePotMeasurement", // Task name for humans
-              128, 
-              NULL,
-              1, // Task priority
-              NULL);
+              128,                  // Stack size
+              NULL,                 // Task parameters
+              1,                    // Task priority
+              NULL);                // Task handle
 
   xTaskCreate(TaskDoSomething,
               "DoesStuff",
@@ -121,16 +122,14 @@ void loop() {}
 void interruptHandler() {
   // Give semaphore in the interrupt handler. Code block can now run in task
   xSemaphoreGiveFromISR(interruptSemaphore, NULL);
-  /* 
 
-
+  /*
   ////////////////////////////////////////////////////////////
   USE THIS TO ACCESS THE SEMAPHORE IN THE TASK
   if (xSemaphoreTake(interruptSemaphore, portMAX_DELAY) == pdPASS) {
       code that does stuff
     }
   ////////////////////////////////////////////////////////////
-
   */
   
 }
@@ -203,7 +202,7 @@ void TaskDoSomething(void *pvParameters)
   }
 }
 
-
+// Task responsible for checking what serial input says
 void TaskKeyboardControl( void *pvParameters)
 {
   (void) pvParameters;
@@ -214,7 +213,6 @@ void TaskKeyboardControl( void *pvParameters)
   messageCommand.value = -1;
   for (;;)
   {
-    
     if (Serial.available() > 0)
     { 
       String inputCommand;
@@ -245,7 +243,7 @@ void TaskKeyboardControl( void *pvParameters)
 }
 
 
-
+// Task responsible for serial communication
 void TaskSerial( void *pvParameters)
 {
   (void) pvParameters;
