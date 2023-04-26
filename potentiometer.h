@@ -20,12 +20,15 @@
 
 class Potentiometer {
   public:
-    Potentiometer(int inputPin);
+    Potentiometer(int inputPin, int bitResolution);
     int getValue();
+    int getDutycycle();
     void makeMeasurement();
   private:
-    int pin;
     int measurement; // potentiometer value
+    int dutycycle;
+    int pin;
+    int bitRes;
 };
 
 #endif
