@@ -3,6 +3,7 @@
 
 #include "motor.h"
 
+// inputPinA is called quadPinB in .ino file
 Motor::Motor(int inputPinA, int outputA, int InputCountsPerRotation) {
 	inA = inputPinA;
   outA = outputA;
@@ -33,11 +34,12 @@ void Motor::calcRotationSpeed(){
 void Motor::readQuadrature() {
 	// adapted from https://github.com/curiores/ArduinoTutorials/blob/main/encoderControl/part3/part3.ino
 	int state = digitalRead(inA);
+  // This line should say "if inA > 0" as a criteria for the switch down below
 	switch (state) {
-		case HIGH:
+		case HIGH: // This needs to be "if inB == 0"
 			position++;
 			break;
-		case LOW:
+		case LOW: // This needs to be "if inB > 0"
 			position--;
 			break;
 	}
