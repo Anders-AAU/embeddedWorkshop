@@ -34,6 +34,7 @@ void Motor::calcRotationSpeed(){
 void Motor::readQuadrature() {
 	// adapted from https://github.com/curiores/ArduinoTutorials/blob/main/encoderControl/part3/part3.ino
 	int state = digitalRead(inA);
+  // I'm pretty sure that this line needs to say "lastPosition = position;"
   // This line should say "if inA > 0" as a criteria for the switch down below
 	switch (state) {
 		case HIGH: // This needs to be "if inB == 0"
