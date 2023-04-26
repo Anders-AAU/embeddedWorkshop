@@ -233,11 +233,9 @@ void TaskMotorControl(void *pvParameters)
       motor.setSpeed(valueFromQueue);
     }
 
-    if (xSemaphoreTake(motorMutex, 3) == pdTRUE)
+    if (xSemaphoreTake(motorMutex, 0) == pdTRUE)
     {
       motor.calcRotationSpeed();
-      
-      
       
       xSemaphoreGive(motorMutex);
     }
@@ -253,7 +251,8 @@ void TaskMotorControlInfo(void *pvParameters)
   struct messageStruct printInfo;
   printInfo.sender = "Motor ";
   printInfo.msgType = task;
-
+  for (;;)
+  {
   if (xSemaphoreTake(motorMutex, 3) == pdTRUE)
     {
       printInfo.value = motor.getRotationSpeed();
@@ -263,7 +262,7 @@ void TaskMotorControlInfo(void *pvParameters)
 
 
     vTaskDelay(pdMS_TO_TICKS(infoDelay));
-
+  }
 }
 
 
@@ -359,6 +358,10 @@ void TaskSerial( void *pvParameters)
         }
         //Serial.print(pot.measurement);Serial.print(" - ");
         Serial.println(message.value);
+
+        if (condition) {
+        statements
+        }
         
       }
 
