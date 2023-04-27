@@ -380,7 +380,7 @@ void TaskPID(void *pvParameters)
     Setpoint = tempSetpoint;
     PIDInput = tempInput;
     
-    if ( myPID.Compute() ) // returns bool if a new value has been calculated
+    if ( myPID.Compute() ) // returns boolean with value true if a new value has been calculated
     {
       //debuging.value = PIDOutput; xQueueSend(structQueue, &debuging, portMAX_DELAY); //debug line
       xQueueSend(motorQueue, &PIDOutput, portMAX_DELAY);
