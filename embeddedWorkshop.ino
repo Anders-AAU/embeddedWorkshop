@@ -19,9 +19,9 @@
 
 #define quadPinA 2
 #define quadPinB 9
-#define motorOutA 11
+#define motorOutA 10
 #define motorDirection 12
-#define countsPerRotation 9999
+#define countsPerRotation 1024
 
 // ms between info from task is to be printed to serial
 #define infoDelay 2000
