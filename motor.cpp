@@ -4,9 +4,10 @@
 #include "motor.h"
 
 // inputPinA is called quadPinB in .ino file
-Motor::Motor(int inputPinA, int outputA, int InputCountsPerRotation) {
+Motor::Motor(int inputPinA, int inputPinDirection, int outputA, int InputCountsPerRotation) {
 	inA = inputPinA;
   outA = outputA;
+  directionPin = inputPinDirection;
 	pinMode(inA, INPUT);
 	position = 0;
 	lastPosition = 0;
@@ -26,7 +27,7 @@ void Motor::calcRotationSpeed(){
 
 	float rotationAmount = moved / cpr;
 
-	rotationSpeed = (rotationAmount / (now-lastTime) ) * 1000; // Note that precision is lost when made into integer
+	rotationSpeed = (rotationAmount / (now-lastTime) ) * 1000; // Note that precision is lost when converted to integer
 
 	lastTime = now;
   lastPosition = position; 
@@ -48,6 +49,15 @@ void Motor::readQuadrature() {
 
 void Motor::setSpeed(int speed) {
 	analogWrite(outA, speed);
+}
+
+void Motor::setDirection(int DIRECTION) {
+  switch (DIRECTION) {
+    case HIGH:
+      digitalWrite(directionPin, HIGH);
+    case LOW:
+      digitalWrite(directionPin, LOW);
+  }
 }
 
 

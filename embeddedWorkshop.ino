@@ -8,15 +8,19 @@
 
 // Include Arduino FreeRTOS library
 #include <Arduino_FreeRTOS.h>
-
 // Include semaphore/mutex support
 #include <semphr.h>
+// Include queue support
+#include <queue.h>
+// Include PID library https://github.com/br3ttb/Arduino-PID-Library/
+#include "PID_v1.h"
 
 #define potentiometerPin A0
 
-#define quadPinA 53
-#define quadPinB 52
-#define motorOutA 10
+#define quadPinA 2
+#define quadPinB 9
+#define motorOutA 11
+#define motorDirection 12
 #define countsPerRotation 9999
 
 // ms between info from task is to be printed to serial
@@ -27,7 +31,7 @@
 #include "potentiometer.h"
 Potentiometer pot(potentiometerPin, 10); // Interfaced with getValue() and makeMeasurement()
 #include "motor.h"
-Motor motor(quadPinB, motorOutA, countsPerRotation); //
+Motor motor(quadPinB, motorDirection, motorOutA, countsPerRotation); //
 
 
 // Declaring a global variable of type SemaphoreHandle_t
@@ -37,9 +41,19 @@ SemaphoreHandle_t motorMutex;
 SemaphoreHandle_t motorSemaphore; // Motor interrupt
 
 
+/*
+  PID library example code is followed for the PID implementation
+*/
 
-// Include queue support
-#include <queue.h>
+#define PID_INPUT 0
+#define PID_OUTPUT 3
+
+//Define Variables we'll be connecting to
+double Setpoint, PIDInput, PIDOutput;
+
+//Specify the links and initial tuning parameters
+double Kp=2, Ki=5, Kd=1;
+PID myPID(&PIDInput, &PIDOutput, &Setpoint, Kp, Ki, Kd, DIRECT);
 
 // Define some types of messages
 enum msgType_t {
@@ -57,24 +71,42 @@ struct messageStruct {
 };
 
 QueueHandle_t structQueue;
+QueueHandle_t PIDPotQueue;
+QueueHandle_t PIDMotorQueue;
 QueueHandle_t motorQueue;
 
 
 
 void setup() {
-  
+  Serial.begin(9600);
   
   pinMode(LED_BUILTIN, OUTPUT);
   pinMode(quadPinA, INPUT);
 
+  //initialize the variables we're linked to
+  PIDInput = 0;  
+  Setpoint = 100;
 
-  structQueue = xQueueCreate(10, // Queue length
+  //turn the PID on
+  myPID.SetMode(AUTOMATIC);
+
+
+  structQueue      = xQueueCreate(10, // Queue length
                               sizeof(struct messageStruct) // Queue item size
                             );
 
-  motorQueue  = xQueueCreate(10, // Queue length
+  PIDPotQueue      = xQueueCreate(10, // Queue length
                               sizeof(int) // Queue item size
                             );
+                            
+  PIDMotorQueue    = xQueueCreate(10, // Queue length
+                              sizeof(int) // Queue item size
+                            );
+
+  motorQueue       = xQueueCreate(10, // Queue length
+                              sizeof(int) // Queue item size
+                            );
+
 
 
   /*
@@ -141,6 +173,13 @@ void setup() {
               2, // Task priority
               NULL);
 
+  xTaskCreate(TaskPID,
+              "Task PID calc", 
+              128, 
+              NULL,
+              1, // Task priority
+              NULL);
+
   /*
   xTaskCreate(TaskKeyboardControl,
               "Task Keyboard Control",
@@ -150,6 +189,9 @@ void setup() {
               NULL);
   */
 
+
+
+  motor.setDirection(HIGH);
 }
 
 void loop() {}
@@ -174,6 +216,7 @@ void TaskPotentiometer(void *pvParameters)
   (void) pvParameters;
 
   int delayTime = 50;
+  int speed = 0;
 
   for (;;)
   {
@@ -181,10 +224,10 @@ void TaskPotentiometer(void *pvParameters)
     {
       pot.makeMeasurement();
     
-      int speed = pot.getValue();
+      speed = pot.getValue();
       
 
-      xQueueSend(motorQueue, &speed, portMAX_DELAY);
+      xQueueSend(PIDPotQueue, &speed, portMAX_DELAY);
 
       xSemaphoreGive(potMutex);
     }
@@ -220,23 +263,31 @@ void TaskPotentiometerInfo(void *pvParameters)
 void TaskMotorControl(void *pvParameters)
 {
   (void) pvParameters;
-  int delayTime = 1;
+  int delayTime = 50;
   int valueFromQueue;
+  int speed;
   for (;;)
   { 
-    if (xSemaphoreTake(motorSemaphore, 0) == pdPASS) 
+    if (xSemaphoreTake(motorSemaphore, portMAX_DELAY) == pdPASS) // if interupt happened
     {
-      motor.readQuadrature(); 
+      if (xSemaphoreTake(motorMutex, portMAX_DELAY) == pdPASS) 
+      {
+        motor.readQuadrature(); 
+        motor.calcRotationSpeed();
+
+        speed = motor.getRotationSpeed();
+        xQueueSend(PIDMotorQueue, &speed, portMAX_DELAY);
+        xSemaphoreGive(motorMutex);
+      }
+      xSemaphoreGive(motorSemaphore);
+    }    
+    if (xQueueReceive(motorQueue, &valueFromQueue, portMAX_DELAY) == pdPASS)
+    {
+      //Serial.print("Set motor to: ");Serial.println(valueFromQueue);
     }
-    if (xQueueReceive(motorQueue, &valueFromQueue, 1) == pdPASS)
+    if (xSemaphoreTake(motorMutex, portMAX_DELAY) == pdPASS) 
     {
       motor.setSpeed(valueFromQueue);
-    }
-
-    if (xSemaphoreTake(motorMutex, 0) == pdTRUE)
-    {
-      motor.calcRotationSpeed();
-      
       xSemaphoreGive(motorMutex);
     }
 
@@ -270,7 +321,7 @@ void TaskMotorControlInfo(void *pvParameters)
 void TaskKeyboardControl( void *pvParameters)
 {
   (void) pvParameters;
-  int delayTime = 200;
+  int delayTime = 500;
 
   struct messageStruct messageCommand;
   messageCommand.sender = "Keyboard Control";
@@ -308,11 +359,40 @@ void TaskKeyboardControl( void *pvParameters)
 }
 
 
+void TaskPID(void *pvParameters)
+{
+  (void) pvParameters;
+
+  int delayTime = 50;
+  struct messageStruct debuging;
+  debuging.sender = "PID";
+  debuging.msgType = debug;
+
+  int correctedSpeed;
+  int tempSetpoint; // 
+  int tempInput = 69;
+
+  for (;;)
+  { 
+    
+    xQueueReceive(PIDPotQueue, &tempSetpoint, portMAX_DELAY); // speed we aim for
+    xQueueReceive(PIDMotorQueue, &tempInput, portMAX_DELAY); // actual speed
+    Setpoint = tempSetpoint;
+    PIDInput = tempInput;
+    
+    if ( myPID.Compute() ) // returns bool if a new value has been calculated
+    {
+      //debuging.value = PIDOutput; xQueueSend(structQueue, &debuging, portMAX_DELAY); //debug line
+      xQueueSend(motorQueue, &PIDOutput, portMAX_DELAY);
+    }
+
+    vTaskDelay(pdMS_TO_TICKS(delayTime));
+  }
+}
 
 void TaskSerial( void *pvParameters)
 {
   (void) pvParameters;
-  Serial.begin(9600);
   struct messageStruct message;
 
   
@@ -325,7 +405,8 @@ void TaskSerial( void *pvParameters)
   {
     
     if (xQueueReceive(structQueue, &message, 1) == pdPASS) {
-      switch(message.msgType){
+      Serial.print("\n \n \n \n \n \n \n \n ");
+      switch(message.msgType){        
         case 1:
           Serial.print("Task"); break;
         case 2:
@@ -334,8 +415,7 @@ void TaskSerial( void *pvParameters)
           Serial.print("\n - - - WARNING - - - \n");break;
       }
 
-      Serial.print(" ::: ");
-      Serial.print("Sender: ");
+      Serial.print(" ::: Sender: ");
       Serial.println(message.sender);
       Serial.print(" \t --> ");
       
