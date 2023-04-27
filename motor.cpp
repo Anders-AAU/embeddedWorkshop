@@ -26,9 +26,10 @@ void Motor::calcRotationSpeed(){
 
 	float rotationAmount = moved / cpr;
 
-	rotationSpeed = (rotationAmount / (now-lastTime) ) * 1000; // precision is lost when made into integer
+	rotationSpeed = (rotationAmount / (now-lastTime) ) * 1000; // Note that precision is lost when made into integer
 
 	lastTime = now;
+  lastPosition = position; 
 }
 
 void Motor::readQuadrature() {
@@ -50,5 +51,6 @@ void Motor::readQuadrature() {
 void Motor::setSpeed(int speed) {
 	analogWrite(outA, speed);
 }
+
 
 

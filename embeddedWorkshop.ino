@@ -199,7 +199,7 @@ void TaskPotentiometerInfo(void *pvParameters)
   (void) pvParameters;
 
   struct messageStruct printInfo;
-  printInfo.sender = "Potentiometer ";
+  printInfo.sender = "Potentiometer";
   printInfo.msgType = task;
 
   for (;;)
@@ -249,7 +249,7 @@ void TaskMotorControlInfo(void *pvParameters)
 {
   (void) pvParameters;
   struct messageStruct printInfo;
-  printInfo.sender = "Motor ";
+  printInfo.sender = "Motor";
   printInfo.msgType = task;
   for (;;)
   {
@@ -356,11 +356,14 @@ void TaskSerial( void *pvParameters)
         if (message.value < 10) {
           Serial.print(" ");
         }
-        //Serial.print(pot.measurement);Serial.print(" - ");
-        Serial.println(message.value);
 
-        if (condition) {
-        statements
+        Serial.print(message.value);
+
+        if (message.sender == "Motor") {
+          Serial.print(" RPM \n");
+        }
+        else {
+          Serial.print(" \n");
         }
         
       }
