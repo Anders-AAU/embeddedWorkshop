@@ -42,7 +42,7 @@ void Motor::readQuadrature() {
 			break;
 		case LOW:
 			position--;
-			break;  
+			break;
 	}
 
 }
