@@ -75,6 +75,13 @@ QueueHandle_t PIDPotQueue;
 QueueHandle_t PIDMotorQueue;
 QueueHandle_t motorQueue;
 
+int POTMAX = 0;
+int POTIMAX = 0;
+int MOTMAX = 0;
+int MOTIMAX = 0;
+int PIDMAX = 0;
+int SERMAX = 0;
+int KEYMAX = 0;
 
 
 void setup() {
@@ -142,7 +149,7 @@ void setup() {
               "Task Potentiometer Measurement",
               128,
               NULL, 
-              2, // Task priority
+              3, // Task priority
               NULL);
 #define debugTaskState1 31
 pinMode(debugTaskState1, OUTPUT);
@@ -151,7 +158,7 @@ pinMode(debugTaskState1, OUTPUT);
               "Task Potentiometer info",
               128,
               NULL, 
-              3, // Task priority
+              1, // Task priority
               NULL);
   #define debugTaskState2 33
   pinMode(debugTaskState2, OUTPUT);
@@ -160,7 +167,7 @@ pinMode(debugTaskState1, OUTPUT);
               "Task motor control",
               128,
               NULL, 
-              1, // Task priority
+              3, // Task priority
               NULL);
   #define debugTaskState3 35
   pinMode(debugTaskState3, OUTPUT);
@@ -169,7 +176,7 @@ pinMode(debugTaskState1, OUTPUT);
               "Task motor info",
               128,
               NULL, 
-              3, // Task priority
+              1, // Task priority
               NULL);
   #define debugTaskState4 37
   pinMode(debugTaskState4, OUTPUT);
@@ -178,7 +185,7 @@ pinMode(debugTaskState1, OUTPUT);
               "Task Serial print", 
               128, 
               NULL,
-              3, // Task priority
+              1, // Task priority
               NULL);
   #define debugTaskState5 39
   pinMode(debugTaskState5, OUTPUT);
@@ -187,7 +194,7 @@ pinMode(debugTaskState1, OUTPUT);
               "Task PID calc", 
               128, 
               NULL,
-              1, // Task priority
+              3, // Task priority
               NULL);
   #define debugTaskState6 41
   pinMode(debugTaskState6, OUTPUT);
@@ -202,7 +209,6 @@ pinMode(debugTaskState1, OUTPUT);
   
   #define debugTaskState7 43
   pinMode(debugTaskState7, OUTPUT);
-    
 
 
   motor.setDirection(HIGH);
@@ -229,11 +235,12 @@ void TaskPotentiometer(void *pvParameters)
 {
   (void) pvParameters;
 
-  int delayTime = 50;
+  int delayTime = 100;
   int speed = 0;
 
   for (;;)
   {
+    int A = millis();
     digitalWrite(debugTaskState1, HIGH);
     
    if (xSemaphoreTake(potMutex, 3) == pdTRUE)
@@ -248,6 +255,12 @@ void TaskPotentiometer(void *pvParameters)
       xSemaphoreGive(potMutex);
     }
     digitalWrite(debugTaskState1, LOW);
+    int endTime = millis()-A;
+    if (endTime > POTMAX){
+      POTMAX = endTime;
+      Serial.print("Potentiometer took: ");Serial.println(POTMAX);
+
+    }
     vTaskDelay(pdMS_TO_TICKS(delayTime));
   
   }
@@ -263,6 +276,7 @@ void TaskPotentiometerInfo(void *pvParameters)
 
   for (;;)
   {
+    int A = millis();
     digitalWrite(debugTaskState2, HIGH);
    if (xSemaphoreTake(potMutex, 3) == pdTRUE)
     {
@@ -274,6 +288,11 @@ void TaskPotentiometerInfo(void *pvParameters)
     }
     
     digitalWrite(debugTaskState2, LOW);
+    int endTime = millis() - A;
+    if (endTime > POTIMAX) {
+      POTIMAX = endTime;
+      Serial.print("PotINFO took: ");Serial.println(POTIMAX);
+    }
     vTaskDelay(pdMS_TO_TICKS(infoDelay));
   }
 }
@@ -281,11 +300,12 @@ void TaskPotentiometerInfo(void *pvParameters)
 void TaskMotorControl(void *pvParameters)
 {
   (void) pvParameters;
-  int delayTime = 50;
+  int delayTime = 100;
   int valueFromQueue;
   int speed;
   for (;;)
   { 
+    int A = millis();
     digitalWrite(debugTaskState3, HIGH);
     if (xSemaphoreTake(motorSemaphore, portMAX_DELAY) == pdPASS) // if interupt happened
     {
@@ -311,6 +331,12 @@ void TaskMotorControl(void *pvParameters)
     }
 
     digitalWrite(debugTaskState3, LOW);
+
+    int endTime = millis()-A;
+    if (endTime > MOTMAX) {
+      MOTMAX = endTime;
+      Serial.print("MotorControl took: ");Serial.println(MOTMAX);
+    }
     vTaskDelay(pdMS_TO_TICKS(delayTime));
   }
 }
@@ -323,6 +349,7 @@ void TaskMotorControlInfo(void *pvParameters)
   printInfo.msgType = task;
   for (;;)
   {
+    int A = millis();
     digitalWrite(debugTaskState4, HIGH);
     if (xSemaphoreTake(motorMutex, 3) == pdTRUE)
       {
@@ -332,6 +359,12 @@ void TaskMotorControlInfo(void *pvParameters)
       }
 
     digitalWrite(debugTaskState4, LOW);
+
+    int endTime = millis()-A;
+    if (endTime > MOTIMAX) {
+      MOTIMAX = endTime;
+      Serial.print("MotorControlInfo took: ");Serial.println(MOTIMAX);
+    }
     vTaskDelay(pdMS_TO_TICKS(infoDelay));
   }
 }
@@ -348,6 +381,7 @@ void TaskKeyboardControl( void *pvParameters)
   messageCommand.msgType = task;
   for (;;)
   {
+    int A = millis();
     digitalWrite(debugTaskState7, HIGH);
     if (Serial.available() > 0)
     { 
@@ -374,6 +408,11 @@ void TaskKeyboardControl( void *pvParameters)
     }
 
     digitalWrite(debugTaskState7, LOW);
+    int endTime = millis()-A;
+    if (endTime > KEYMAX) {
+      KEYMAX = endTime;
+      Serial.print("Keyboard took: ");Serial.println(KEYMAX);
+    }
     vTaskDelay(pdMS_TO_TICKS(delayTime));
   }
 
@@ -384,7 +423,7 @@ void TaskPID(void *pvParameters)
 {
   (void) pvParameters;
 
-  int delayTime = 50;
+  int delayTime = 100;
   struct messageStruct debuging;
   debuging.sender = "PID";
   debuging.msgType = debug;
@@ -395,19 +434,25 @@ void TaskPID(void *pvParameters)
 
   for (;;)
   { 
+    int A = millis();    
     digitalWrite(debugTaskState6, HIGH);
     xQueueReceive(PIDPotQueue, &tempSetpoint, portMAX_DELAY); // speed we aim for
     xQueueReceive(PIDMotorQueue, &tempInput, portMAX_DELAY); // actual speed
     Setpoint = tempSetpoint;
     PIDInput = tempInput;
     
-    if ( myPID.Compute() ) // returns boolean with value true if a new value has been calculated
+    if ( myPID.Compute() ) // returns boolean with value true if a endTime value has been calculated
     {
       //debuging.value = PIDOutput; xQueueSend(structQueue, &debuging, portMAX_DELAY); //debug line
       xQueueSend(motorQueue, &PIDOutput, portMAX_DELAY);
     }
 
     digitalWrite(debugTaskState6, LOW);
+    int endTime = millis()-A;
+    if (endTime > PIDMAX) {
+      PIDMAX = endTime;
+      Serial.print("PID took: ");Serial.println(PIDMAX);
+    }
     vTaskDelay(pdMS_TO_TICKS(delayTime));
   }
 }
@@ -415,19 +460,20 @@ void TaskPID(void *pvParameters)
 void TaskSerial( void *pvParameters)
 {
   (void) pvParameters;
+  int delayTime = 100;
   struct messageStruct message;
-
   
-  
-  while(!Serial){
+  while(!Serial){ // Wait for Serial to be ready
     vTaskDelay(1);
   }
+  vTaskDelay(100);
 
   for (;;)
   {
+    int A = millis();
     digitalWrite(debugTaskState5, HIGH);
     if (xQueueReceive(structQueue, &message, 1) == pdPASS) {
-      Serial.print("\n \n \n \n \n \n \n \n ");
+      Serial.print("\n \n ");
       switch(message.msgType){        
         case 1:
           Serial.print("Task"); break;
@@ -472,7 +518,12 @@ void TaskSerial( void *pvParameters)
 
     }
     digitalWrite(debugTaskState5, LOW);
-    vTaskDelay(1);
+    int endTime = millis()-A;
+    if (endTime > SERMAX) {
+      SERMAX = endTime;
+      Serial.print("SERIAL took: ");Serial.println(SERMAX);
+    }
+    vTaskDelay(pdMS_TO_TICKS(delayTime));
   }
   
 }
