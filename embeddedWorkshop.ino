@@ -24,6 +24,8 @@
 #define countsPerRotation 1024
 
 // ms between info from task is to be printed to serial
+#define shortDelay 200
+#define mediumDelay 500
 #define infoDelay 2000
 #define portMAX_DELAY 3 // Redefine portMax_DELAY
 
@@ -102,15 +104,15 @@ void setup() {
                               sizeof(struct messageStruct) // Queue item size
                             );
 
-  PIDPotQueue      = xQueueCreate(10, // Queue length
+  PIDPotQueue      = xQueueCreate(2, // Queue length
                               sizeof(int) // Queue item size
                             );
                             
-  PIDMotorQueue    = xQueueCreate(10, // Queue length
+  PIDMotorQueue    = xQueueCreate(2, // Queue length
                               sizeof(int) // Queue item size
                             );
 
-  motorQueue       = xQueueCreate(10, // Queue length
+  motorQueue       = xQueueCreate(2, // Queue length
                               sizeof(int) // Queue item size
                             );
 
@@ -235,7 +237,7 @@ void TaskPotentiometer(void *pvParameters)
 {
   (void) pvParameters;
 
-  int delayTime = 100;
+  int delayTime = shortDelay;
   int speed = 0;
 
   for (;;)
@@ -300,7 +302,7 @@ void TaskPotentiometerInfo(void *pvParameters)
 void TaskMotorControl(void *pvParameters)
 {
   (void) pvParameters;
-  int delayTime = 100;
+  int delayTime = shortDelay;
   int valueFromQueue;
   int speed;
   for (;;)
@@ -351,7 +353,7 @@ void TaskMotorControlInfo(void *pvParameters)
   {
     int A = millis();
     digitalWrite(debugTaskState4, HIGH);
-    if (xSemaphoreTake(motorMutex, 3) == pdTRUE)
+    if (xSemaphoreTake(motorMutex, portMAX_DELAY) == pdTRUE)
       {
         printInfo.value = motor.getRotationSpeed();
         xQueueSend(structQueue, &printInfo, portMAX_DELAY);
@@ -374,7 +376,7 @@ void TaskMotorControlInfo(void *pvParameters)
 void TaskKeyboardControl( void *pvParameters)
 {
   (void) pvParameters;
-  int delayTime = 500;
+  int delayTime = mediumDelay;
 
   struct messageStruct messageCommand;
   messageCommand.sender = "Keyboard Control";
@@ -423,7 +425,7 @@ void TaskPID(void *pvParameters)
 {
   (void) pvParameters;
 
-  int delayTime = 100;
+  int delayTime = shortDelay;
   struct messageStruct debuging;
   debuging.sender = "PID";
   debuging.msgType = debug;
@@ -460,7 +462,7 @@ void TaskPID(void *pvParameters)
 void TaskSerial( void *pvParameters)
 {
   (void) pvParameters;
-  int delayTime = 100;
+  int delayTime = mediumDelay;
   struct messageStruct message;
   
   while(!Serial){ // Wait for Serial to be ready
